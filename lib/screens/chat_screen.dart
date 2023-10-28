@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:quiick_chat/constants.dart';
 import 'package:cloud_firestore/cloud_firestore.dart  ';
 
@@ -11,9 +12,11 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   String? message;
+  TextEditingController messages=TextEditingController();
   final _firestore= FirebaseFirestore.instance;
   final _auth=FirebaseAuth.instance;
    late final User? currentUser;
+   
   void getCurrUser()async{
     try{
       final used= _auth.currentUser;
@@ -59,7 +62,9 @@ final user=   _auth.authStateChanges()
         backgroundColor: Colors.lightBlueAccent,
       ),
       body: SafeArea(
-        child: ListView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           
           children: <Widget>[
 
@@ -69,39 +74,39 @@ final user=   _auth.authStateChanges()
                 if(!snapshot.hasData){
                   return CircularProgressIndicator(backgroundColor: Colors.white,);
                 }
-                List <Column> messageWidgets=[];
-
+                List <BubbleMessage> messageWidgets=[];
+                bool check;
                 final List<QueryDocumentSnapshot> lists=snapshot.data!.docs.toList() ;
                 for(var list in lists){
-                  final messageWidget=Column(
-                    children: [
-                      Text(list["sender"]),
-                      SizedBox(height: 3.0,),
-                      Text(list["message"]),
-                    ],
-                  );
+                  if(currentUser!.email.toString() !=list["sender"].toString()){
+                    check=false;
+                  }
+                  else{
+                    check=true;
+                  }
+                  final messageWidget=BubbleMessage(sender: list["sender"].toString(),message: list["message"].toString(),check:check);
                   messageWidgets.add(messageWidget);
-                }
-                
-              
-                
-
-                
-               
-                return Column(
-                  children: messageWidgets,
+                }             
+                return Expanded(
+                  child: ListView(
+                    reverse: true,
+                    padding: EdgeInsets.symmetric(vertical: 10,horizontal: 10),
+                    children: messageWidgets,
+                  ),
                 );
               }
               ),
 
             Container(
+              
               decoration: kMessageContainerDecoration,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
+                verticalDirection: VerticalDirection.up,
                 children: <Widget>[
                   Expanded(
                     child: TextField(
-
+                      controller: messages,
                       onChanged: (value) {
                         message=value;
                       },
@@ -110,12 +115,14 @@ final user=   _auth.authStateChanges()
                   ),
                   TextButton(
                     onPressed: () {
+                      messages.clear();
                       print(message);
                       var data ={
                         "message":message,
                         "sender":currentUser!.email,
                       };
                       _firestore.collection("messages").add(data);
+                      
                     },
                     child: Text(
                       'Send',
@@ -129,5 +136,51 @@ final user=   _auth.authStateChanges()
         ),
       ),
     );
+  }
+}
+
+class BubbleMessage extends StatelessWidget {
+  const BubbleMessage({this.sender,this.message,this.check});
+  final sender;
+  final message;
+  final check;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+                    crossAxisAlignment:check? CrossAxisAlignment.end:CrossAxisAlignment.start,
+                    children: [
+                      Text(sender,
+                      style: TextStyle(
+                        fontSize: 20,
+                      ),
+                      ),
+                      SizedBox(height: 3.0,),
+                      Material(
+                        elevation: 5,
+                        
+                        
+                        child: Container(
+                          padding: EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color:check? Colors.blue:Colors.white,
+                            borderRadius:check? BorderRadius.only(topLeft: Radius.circular(10),
+                            bottomLeft: Radius.circular(10),bottomRight:Radius.circular(10) ): BorderRadius.only(topRight: Radius.circular(10),
+                            bottomLeft: Radius.circular(10),bottomRight:Radius.circular(10) ),
+                      
+                            
+                          ),
+                          child: Text(message,
+                          style: TextStyle(fontSize: 35,
+                          color: check? Colors.white:Colors.black,
+                          
+                          ),
+                          ),
+                          
+                          ),
+                      ),
+                        SizedBox(height: 15,)
+                    ],
+                  );;
   }
 }
