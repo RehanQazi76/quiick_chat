@@ -39,6 +39,7 @@ dependencies:
   firebase_auth:
   animated_text_kit: ^4.2.2
   cloud_firestore:
+  timeago: ^3.6.0
 
 dev_dependencies:
   flutter_test:
